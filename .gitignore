@@ -10,7 +10,6 @@ venv/
 .idea/
 
 # Üretilen dosyalar: kodla yeniden üretilebilir, repoya girmez
-data/processed/*
 !data/processed/.gitkeep
 results/predictions/*
 !results/predictions/.gitkeep
