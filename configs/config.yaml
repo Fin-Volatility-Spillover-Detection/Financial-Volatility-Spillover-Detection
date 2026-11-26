@@ -1,0 +1,52 @@
+# Bütün ayarlar burada. Kodun içine tarih, yol veya sabit sayı yazmayın.
+
+paths:
+  sectors: data/raw/49_sektor_gunluk_getiri_temiz.csv
+  ff3: data/raw/ff3_daily_clean.csv
+  processed: data/processed
+  results: results
+
+# Veri birimi yüzde: 0.45 = %0,45. Bileşik getiri hesaplarken 100'e bölün.
+
+residuals:
+  model: ff3            # ff3 | capm
+  window: 252           # beta tahmini için geriye bakılan gün sayısı (~1 yıl)
+  min_obs: 200          # pencerede en az bu kadar gözlem yoksa artık NaN
+  refit_every: 1        # betayı kaç günde bir yeniden tahmin et (1 = her gün)
+  start: "1999-01-01"   # artık hesabının başlangıcı (ilk yıl pencere için harcanır)
+
+split:
+  # 2010–2017 tek başına çok sakin: FF3 artıklarında Granger 0 kenar buluyor.
+  # 2000–2017 dot-com ve 2008'i içeriyor → 126 kenar. Bkz. docs/kararlar.md #11.
+  train: ["2000-01-03", "2017-12-31"]
+  val:   ["2018-01-01", "2019-12-31"]   # ayar (hiperparametre) seçimi için
+  test:  ["2020-01-01", "2026-09-30"]   # hiçbir model ve graf bu döneme bakarak kurulmaz
+
+graphs:
+  granger:
+    lags: 1
+    fdr: 0.05
+  dy:
+    lags: 1
+    horizon: 10         # H: kaç günlük tahmin hatası ayrıştırılıyor
+    estimator: lasso    # lasso | ols
+    lasso_alpha: 0.01
+    rolling_window: 250
+    rolling_step: 5
+
+models:
+  ar:
+    lags: 1
+  lasso_var:
+    lags: 1
+    alpha: 0.01
+
+evaluation:
+  # Kriz pencereleri SADECE değerlendirmede kullanılır, hiçbir modelin girdisi değildir.
+  # Tarihler yaklaşık; raporda kaynak gösterilerek kesinleştirilecek (NBER / olay tarihleri).
+  crises:
+    dotcom:      ["2000-03-10", "2002-10-09"]
+    gfc_2008:    ["2008-09-01", "2009-03-31"]
+    covid_2020:  ["2020-02-20", "2020-04-30"]
+    rates_2022:  ["2022-01-03", "2022-10-14"]
+    tariff_2025: ["2025-04-02", "2025-04-30"]
