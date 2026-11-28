@@ -2,7 +2,7 @@
 
 GTU bitirme projesi. **Soru:** Hangi sektör, hangi sektördeki artışı veya düşüşü ne kadar etkiliyor?
 
-**Şu anki durum:** Veri hazırlığı tamamlandı. 49 ABD sektörünün getirileri günlük, haftalık, 2 haftalık ve aylık dönemlere birleştirildi. Piyasa etkisi Fama–French 3 faktör (FF3) modeliyle çıkarıldı. Analiz ve modelleme henüz başlamadı.
+**Şu anki durum:** Veri hazırlığı tamamlandı. 49 ABD sektörünün getirileri günlük, haftalık, 2 haftalık ve aylık dönemlere birleştirildi. Piyasa etkisi Fama–French 3 faktör (FF3) modeliyle çıkarıldı. Analiz aşaması henüz başlamadı.
 
 ## Kurulum
 
@@ -10,7 +10,7 @@ GTU bitirme projesi. **Soru:** Hangi sektör, hangi sektördeki artışı veya d
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 pip install -e .
-pytest                                              # 8 test: birleştirme kuralları, look-ahead yok, beta doğruluğu
+pytest                                              # 10 test: birleştirme, look-ahead yok, beta doğruluğu, ayrım
 ```
 
 ## Veriyi üretmek
@@ -34,13 +34,27 @@ src/sektorgraf/
   data/io.py                        Ham veri yükleme
   data/aggregate.py                 Günlük → haftalık / 2 haftalık / aylık (bileşik)
   data/residuals.py                 Kayan pencereli FF3 / CAPM regresyonu ve artıklar
-tests/test_aggregate.py             Veri hazırlığı testleri
+  data/splits.py                    Ortak veri okuma ve eğitim / doğrulama / test ayrımı
+tests/                              Veri hazırlığı ve ayrım testleri
 docs/kararlar.md                    Veriyle ilgili kararlar ve gerekçeleri
 ```
 
 ## Ana veri
 
 `data/processed/artik_ff3_haftalik_1985.csv`: 49 sektörün haftalık, piyasa etkisi çıkarılmış (FF3) getirileri, 1985–2026. Bütün dosyalar ve kurallar için `data/processed/AI_CONTEXT.md`.
+
+## Ortak zaman ayrımı
+
+Bütün ekip aynı ayrımı kullanır (`configs/config.yaml → split`): **eğitim 1985–2012 · doğrulama 2013–2018 · test 2019–2026.**
+
+```python
+from sektorgraf.config import load_config
+from sektorgraf.data.splits import load_processed, split
+
+cfg = load_config()
+artik = load_processed(cfg, "artik_ff3_haftalik_1985.csv")   # son kısmi hafta atılmış
+train, val, test = split(artik, cfg).values()
+```
 
 ## Kurallar
 

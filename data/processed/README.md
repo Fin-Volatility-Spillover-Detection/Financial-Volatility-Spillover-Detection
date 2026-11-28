@@ -61,7 +61,7 @@ Aylıkta 5 yıllık pencere standarttır (2 yılda sadece 24 gözlem olurdu). Bu
 
 ## Dikkat edilecekler
 
-- **Son dönem kısmi:** Veri 30 Eylül 2026 Çarşamba bitiyor. Son hafta 3 gün, son 2 haftalık dönem ve son ay da eksik. Modellemede son satırı atmak veya işaretlemek gerekir.
+- **Son dönem kısmi:** Veri 30 Eylül 2026 Çarşamba bitiyor. Son hafta 3 gün, son 2 haftalık dönem ve son ay da eksik. Analizde son satırı atmak veya işaretlemek gerekir.
 - **Kısa haftalar:** Haftalıkta 382 hafta 4 gün, 3 hafta 3 gün, 1 hafta 1 gün (11 Eylül 2001 sonrası borsa kapanışı).
 - **Eski `49_sektor_<frekans>_1985.csv` dosyaları kaldırıldı.** Yerlerini `_1983` dosyaları aldı (1985+ kısmı aynı; eskilerde 4 Ocak 1985'te biten ilk hafta ve ilk 2 haftalık dönem, 31 Aralık 1984 eksik hesaplanmıştı).
 
