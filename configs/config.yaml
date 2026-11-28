@@ -4,47 +4,58 @@ paths:
   sectors: data/raw/49_sektor_gunluk_getiri_temiz.csv
   ff3: data/raw/ff3_daily_clean.csv
   processed: data/processed
-  results: results
+  results: results            # sonuçlar results/<frekans>/ altına yazılır
 
 # Veri birimi yüzde: 0.45 = %0,45. Bileşik getiri hesaplarken 100'e bölün.
 
-residuals:
-  model: ff3            # ff3 | capm
-  window: 252           # beta tahmini için geriye bakılan gün sayısı (~1 yıl)
-  min_obs: 200          # pencerede en az bu kadar gözlem yoksa artık NaN
-  refit_every: 1        # betayı kaç günde bir yeniden tahmin et (1 = her gün)
-  start: "1999-01-01"   # artık hesabının başlangıcı (ilk yıl pencere için harcanır)
+# --- Analizde hangi işlenmiş veri kullanılacak (scripts/02, 03, 04)
+data:
+  frequency: haftalik         # haftalik (ana) | gunluk (sağlamlık) | 2haftalik | aylik
+  residual_model: ff3         # ff3 | capm  (capm için önce: 00_build_processed_data.py --capm)
+  drop_last_partial: true     # son satır (2026-09-30) kısmi dönem; günlük hariç atılır
 
+# --- İşlenmiş veriyi üretme (scripts/00_build_processed_data.py)
+data_prep:
+  raw_start: "1983-01-01"       # ham birleştirilmiş dosyaların başlangıcı
+  analysis_start: "1985-01-01"  # artık / beta / oynaklık dosyalarının başlangıcı
+  warmup_from: "1979-01-01"     # içeride kullanılan en erken ham veri (aylık 60 aylık pencere için)
+  windows:                      # frekans: [beta penceresi, pencerede en az gözlem]
+    gunluk: [252, 200]          # ~1 yıl
+    haftalik: [104, 84]         # 2 yıl
+    2haftalik: [52, 42]         # 2 yıl
+    aylik: [60, 48]             # 5 yıl
+
+# --- Zaman ayrımı (karar belgesi, 28 Kasım 2026). Zaman sırasına göre, karıştırmadan.
 split:
-  # 2010–2017 tek başına çok sakin: FF3 artıklarında Granger 0 kenar buluyor.
-  # 2000–2017 dot-com ve 2008'i içeriyor → 126 kenar. Bkz. docs/kararlar.md #11.
-  train: ["2000-01-03", "2017-12-31"]
-  val:   ["2018-01-01", "2019-12-31"]   # ayar (hiperparametre) seçimi için
-  test:  ["2020-01-01", "2026-09-30"]   # hiçbir model ve graf bu döneme bakarak kurulmaz
+  train: ["1985-01-01", "2012-12-31"]   # 1987, dot-com ve 2008 krizleri dahil
+  val:   ["2013-01-01", "2018-12-31"]   # ayar (hiperparametre) seçimi için
+  test:  ["2019-01-01", "2026-09-30"]   # 2020, 2022, 2025; hiçbir model ve graf bu döneme bakarak kurulmaz
 
 graphs:
   granger:
-    lags: 1
+    lags: 1                   # dönem cinsinden (haftalıkta 1 hafta)
     fdr: 0.05
   dy:
     lags: 1
-    horizon: 10         # H: kaç günlük tahmin hatası ayrıştırılıyor
-    estimator: lasso    # lasso | ols
+    horizon: 10               # H: kaç dönemlik tahmin hatası ayrıştırılıyor (haftalıkta 10 hafta)
+    estimator: lasso          # lasso | ols
     lasso_alpha: 0.01
-    rolling_window: 250
-    rolling_step: 5
+    rolling_window: 104       # kayan DY penceresi, dönem cinsinden (haftalıkta 2 yıl)
+    rolling_step: 4           # kaç dönemde bir hesaplanır (haftalıkta ~ayda bir)
 
 models:
   ar:
     lags: 1
   lasso_var:
     lags: 1
-    alpha: 0.01
+    alpha: 0.01               # henüz ayarlanmadı; val döneminde seçilecek
 
 evaluation:
   # Kriz pencereleri SADECE değerlendirmede kullanılır, hiçbir modelin girdisi değildir.
   # Tarihler yaklaşık; raporda kaynak gösterilerek kesinleştirilecek (NBER / olay tarihleri).
   crises:
+    black_monday_1987: ["1987-10-01", "1987-12-31"]
+    ltcm_1998:   ["1998-08-01", "1998-10-31"]
     dotcom:      ["2000-03-10", "2002-10-09"]
     gfc_2008:    ["2008-09-01", "2009-03-31"]
     covid_2020:  ["2020-02-20", "2020-04-30"]
