@@ -11,7 +11,7 @@
 3. **Satır = dönem, sütun = sektör.** İndeks `Date`. Etiket, o dönemin **son işlem günü**.
 4. **Hiçbir dosyada eksik değer (NaN) yok.** Aynı frekanstaki 1985 dosyalarının tarihleri birebir hizalı.
 5. **Dosya adındaki yıl, dosyanın başlangıç yılıdır.** `_1983` = ham veri (2 yıllık ısınma dahil), `_1985` = işlenmiş veri (analiz dönemi).
-6. **Son satır kısmi bir dönemdir** (veri 30 Eylül 2026 Çarşamba bitiyor). Modellemede at veya işaretle.
+6. **Son satır kısmi bir dönemdir** (veri 30 Eylül 2026 Çarşamba bitiyor). Analizde at veya işaretle.
 7. **CSV'leri elle düzenleme.** Hepsi `python scripts/00_build_processed_data.py` ile yeniden üretilir.
 
 ## 1. Proje bağlamı (bu veriler ne için var?)
@@ -118,7 +118,7 @@ SIC kodu eşlemesi: `Siccodes49.txt` (French Data Library).
   - `gunluk`: 49 sütun (`Agric` … `Other`).
   - `haftalik`, `2haftalik`, `aylik`: 147 sütun. Her sektör için sırayla `<S>` (dönem getirisi), `<S>_min` (dönem içindeki en düşük **günlük** getiri), `<S>_max` (en yüksek günlük getiri).
 - **Kullanım:** "FF3 olmadan ne olurdu?" karşılaştırması (`.loc["1985":]` ile kes). Min/max sütunları oynaklık veya uç hareket analizi için.
-- **Kullanma:** Sektörler arası etki modellerinin girdisi olarak. Ortak piyasa hareketi sahte bağlantılar üretir.
+- **Kullanma:** Sektörler arası etki analizlerinin girdisi olarak. Ortak piyasa hareketi sahte bağlantılar üretir.
 
 ### 4.2 `ff3_<frekans>_1983.csv`: Fama–French faktörleri
 
@@ -171,31 +171,40 @@ SIC kodu eşlemesi: `Siccodes49.txt` (French Data Library).
 - `beta[t]`: Sadece t'den **önceki** dönemlerden tahmin edilir (pencere [t − pencere, t − 1]).
 - `artik[t]`: t döneminin kendi getirisi ve faktörleriyle hesaplanır, yani **t'nin sonunda bilinir.** Bu veriyle geleceğe dönük bir şey yapılacaksa, t+1 için sadece `≤ t` satırları kullanılmalıdır.
 - Kriz tarihleri (2008, 2020 vb.) bu dosyalarda yok.
+- **Ortak zaman ayrımı** (`configs/config.yaml → split`, bütün ekip için tek kaynak): eğitim 1985–2012 · doğrulama 2013–2018 · test 2019–2026. Zaman sırasına göre, karıştırmadan. Bir dönem, **bitiş tarihine (etiketine)** göre atanır; ör. 4 Ocak 2013'te biten hafta (31 Aralık 2012'yi de içerir) doğrulamaya düşer. Kod: `sektorgraf.data.splits.split`.
+
+  | Frekans | Eğitim | Doğrulama | Test |
+  |---|---|---|---|
+  | gunluk | 7060 | 1510 | 1947 |
+  | haftalik | 1461 | 313 | 404 |
+  | 2haftalik | 730 | 157 | 202 |
+  | aylik | 336 | 72 | 92 |
+
+  (Kısmi son dönem atıldıktan sonra.)
 
 ## 7. Kullanım tarifleri
 
 ```python
 import numpy as np
-import pandas as pd
+from sektorgraf.config import load_config
+from sektorgraf.data.splits import load_processed, split
 
-P = "data/processed/"
-read = lambda f: pd.read_csv(P + f, index_col="Date", parse_dates=True)
+cfg = load_config()
 
-artik = read("artik_ff3_haftalik_1985.csv")              # ana girdi (2179 × 49)
-artik = artik.iloc[:-1]                                    # son kısmi haftayı at (2026-09-30, 3 gün)
+artik = load_processed(cfg, "artik_ff3_haftalik_1985.csv")   # ana girdi; son kısmi hafta atılmış (2178 × 49)
+parts = split(artik, cfg)                                     # ortak ayrım
+train, val, test = parts["train"], parts["val"], parts["test"]
 
-ham = read("49_sektor_haftalik_1983.csv").loc["1985":]
+ham = load_processed(cfg, "49_sektor_haftalik_1983.csv").loc["1985":]
 ham = ham[[c for c in ham.columns if not c.endswith(("_min", "_max"))]]   # sadece getiriler
-assert ham.index.equals(read("artik_ff3_haftalik_1985.csv").index)       # hizalı
+assert ham.index.equals(artik.index)                                     # hizalı
 
-rv = read("oynaklik_rv_ff3_haftalik_1985.csv")
+rv = load_processed(cfg, "oynaklik_rv_ff3_haftalik_1985.csv")
 n = rv.pop("n_gun")
-rv_olcekli = rv.mul(5 / n, axis=0)                         # kısa haftaları 5 güne ölçekle
-log_rv = np.log(rv_olcekli.clip(lower=1e-4))
+log_rv = np.log(rv.mul(5 / n, axis=0).clip(lower=1e-4))     # kısa haftaları 5 güne ölçekle, log al
 
-beta = read("beta_ff3_haftalik_1985.csv")
+beta = load_processed(cfg, "beta_ff3_haftalik_1985.csv")
 beta_mkt = beta.filter(like="_mkt").rename(columns=lambda c: c[:-4])     # dönem × 49
-
 ```
 
 | Görev | Dosya |
