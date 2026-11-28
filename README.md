@@ -1,5 +1,7 @@
 # Sektörler Arası Etki Analizi: Veri Hazırlığı
 
+> Projeye yeni başlıyorsanız önce [`BASLANGIC.md`](BASLANGIC.md) dosyasını okuyun: ortak bağlam, veriler, kesinleşmiş kararlar.
+
 GTU bitirme projesi. **Soru:** Hangi sektör, hangi sektördeki artışı veya düşüşü ne kadar etkiliyor?
 
 **Şu anki durum:** Veri hazırlığı tamamlandı. 49 ABD sektörünün getirileri günlük, haftalık, 2 haftalık ve aylık dönemlere birleştirildi. Piyasa etkisi Fama–French 3 faktör (FF3) modeliyle çıkarıldı. Analiz aşaması henüz başlamadı.
