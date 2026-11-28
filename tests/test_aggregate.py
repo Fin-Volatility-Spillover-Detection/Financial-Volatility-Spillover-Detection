@@ -80,3 +80,17 @@ def test_factor_model_no_lookahead_all_coefficients():
     r3, b3 = rolling_residuals(sec, ff, "ff3", 104, 84)
     pd.testing.assert_frame_equal(r1, r3)
     pd.testing.assert_frame_equal(c1["Mkt-RF"], b3)
+
+
+def test_factor_model_recovers_known_betas():
+    """Bilinen betalarla üretilmiş veride kayan pencere betaları doğru bulunmalı."""
+    rng = np.random.default_rng(1)
+    T = 800
+    idx = pd.bdate_range("1990-01-01", periods=T)
+    ff = pd.DataFrame(rng.normal(size=(T, 3)), idx, ["Mkt-RF", "SMB", "HML"]).assign(RF=0.0)
+    true = np.array([[1.2, 0.3, 0.8], [0.6, -0.2, 0.4]])  # 2 sektör × (mkt, smb, hml)
+    sec = pd.DataFrame(ff[["Mkt-RF", "SMB", "HML"]].to_numpy() @ true.T
+                       + rng.normal(0, 0.5, (T, 2)), idx, ["A", "B"])
+    _, coefs = rolling_factor_model(sec, ff, "ff3", 252, 200)
+    last = np.array([[coefs[k].iloc[-1][s] for k in ("Mkt-RF", "SMB", "HML")] for s in ("A", "B")])
+    assert np.allclose(last, true, atol=0.1)

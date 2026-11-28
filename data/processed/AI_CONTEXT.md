@@ -6,7 +6,7 @@
 
 ## 0. Önce bunları bil (özet)
 
-1. **Ana girdi `artik_ff3_haftalik_1985.csv`.** Sektörler arası etki analizlerinin (Granger, Diebold–Yılmaz, AR, Lasso-VAR, LSTM, Graph WaveNet) hepsi bu dosyayla yapılır. Ham getirilerle model kurma.
+1. **Ana girdi `artik_ff3_haftalik_1985.csv`.** Sektörler arası etki analizlerinin girdisi bu dosya. Ham getirilerle analiz yapma.
 2. **Birim yüzde.** `0.45` = %0,45, `−2.1` = −%2,1. Oynaklık dosyaları **yüzde kare (%²)**.
 3. **Satır = dönem, sütun = sektör.** İndeks `Date`. Etiket, o dönemin **son işlem günü**.
 4. **Hiçbir dosyada eksik değer (NaN) yok.** Aynı frekanstaki 1985 dosyalarının tarihleri birebir hizalı.
@@ -16,12 +16,10 @@
 
 ## 1. Proje bağlamı (bu veriler ne için var?)
 
-GTU bitirme projesi. Soru: **"Hangi sektör, hangi sektördeki artışı veya düşüşü ne kadar etkiliyor?"**
+GTU bilgisayar mühendisliği bitirme projesi. Soru: **"Hangi sektör, hangi sektördeki artışı veya düşüşü ne kadar etkiliyor?"**
+Proje şu an **veri hazırlığı aşamasında**: bu klasördeki CSV'ler, sektörler arası etki analizlerine girdi olmak üzere hazırlandı.
 
-- **Ana çıktı:** Diebold–Yılmaz yöntemiyle (Lasso-VAR + genelleştirilmiş tahmin hatası varyans ayrıştırması) 49×49 bir etki tablosu, ve bu tablonun kriz dönemlerinde nasıl değiştiği.
-- **Doğrulama:** Etki tablosu Graph WaveNet'e graf olarak verilir. Grafsız, rastgele ve korelasyon graflı versiyonlarla tahmin hatası karşılaştırılır.
-- **Neden ham getiri değil de artık?** Piyasa bütün sektörleri birlikte hareket ettirir. Ham veride sektörler birbirini etkiliyormuş gibi görünür (ortalama korelasyon 0,54). FF3 artıkları bu ortak hareketi çıkarır (ortalama korelasyon 0,03). Geriye sektöre özgü hareket kalır.
-- **Amaç tahmin değil, bağlılıkları ölçmek.** Tahmin, ölçümün doğruluğunu sınamak için kullanılır.
+- **Neden ham getiri değil de artık?** Piyasa bütün sektörleri birlikte hareket ettirir. Ham veride sektörler birbirini etkiliyormuş gibi görünür (ortalama korelasyon 0,54). FF3 artıkları bu ortak hareketi çıkarır (ortalama korelasyon 0,03). Geriye **sektöre özgü** hareket kalır; sektörler arası etkiler bunun üzerinden incelenir.
 
 ## 2. Veri kökeni ve akış
 
@@ -133,7 +131,7 @@ SIC kodu eşlemesi: `Siccodes49.txt` (French Data Library).
 - **Ne:** Her sektörün, piyasa + küçük şirket + value/growth etkileri çıkarıldıktan sonra kalan **sektöre özgü** getirisi (%).
 - **Formül:** `artik[t, S] = (R[t, S] − RF[t]) − (α[t, S] + β_mkt[t, S]·MktRF[t] + β_smb[t, S]·SMB[t] + β_hml[t, S]·HML[t])`
 - **Sütunlar:** 49 sektör.
-- **Kullanım:** Granger, Diebold–Yılmaz etki tablosu, AR, Lasso-VAR(X), LSTM, Graph WaveNet. Haftalık ana analiz, günlük sağlamlık kontrolü.
+- **Kullanım:** Sektörler arası etki analizlerinin ana girdisi. Haftalık ana analiz, günlük sağlamlık kontrolü.
 - **Ölçek (sektör standart sapmalarının medyanı):** günlük 0,84 · haftalık 1,89 · 2 haftalık 2,67 · aylık 4,07.
 
 ### 4.4 `beta_ff3_<frekans>_1985.csv`: kullanılan betalar
@@ -147,7 +145,7 @@ SIC kodu eşlemesi: `Siccodes49.txt` (French Data Library).
 - **Ne:** Dönem içindeki **günlük** FF3 artıklarının kareleri toplamı (%²). Sektöre özgü oynaklığın ölçüsü. 49 sektör + `n_gun`.
 - **Kaynak:** `artik_ff3_gunluk` ile aynı yöntemle (252 günlük pencere) hesaplanan günlük artıklar.
 - **Frekanslar:** haftalık, 2 haftalık, aylık (günlük yok).
-- **Kullanım:** Oynaklık katmanı: HAR, Lasso-HAR, oynaklık yayılma grafı. Log dönüşümü (`np.log(rv)`) genelde önerilir.
+- **Kullanım:** Sektöre özgü oynaklığın (yönden bağımsız "çalkantı") incelenmesi. Log dönüşümü (`np.log(rv)`) genelde önerilir.
 - **Tipik değer (medyan):** haftalık 1,87 · 2 haftalık 4,24 · aylık 10,17.
 
 ## 5. Yöntem ayrıntıları
@@ -168,14 +166,11 @@ SIC kodu eşlemesi: `Siccodes49.txt` (French Data Library).
 | 2haftalik | 52 dönem | 42 | 1983–1984 |
 | aylik | 60 ay | 48 | 1980–1984 (1983 dosyasından eski ham veri kullanılır) |
 
-## 6. Zaman kuralları (look-ahead önleme)
+## 6. Zaman kuralları (look-ahead)
 
-- `beta[t]`: Sadece t'den **önceki** dönemlerden. `artik[t]`: t döneminin kendi getirisi ve faktörleriyle hesaplanır, yani **t'nin sonunda bilinir**.
-- **Tahmin kurarken:** t+1'i tahmin eden bir model sadece `≤ t` satırlarını görebilir. Hedef `artik[t+1]`, özellikler `artik[≤ t]`.
-- **Kararlaştırılan ayrım** (haftalık): eğitim 1985–2012 · doğrulama 2013–2018 · test 2019–2026. Zaman sırasına göre, karıştırmadan.
-- **DY etki tablosu modele graf olarak verilecekse sadece eğitim döneminden** hesaplanmalı. Tüm dönem DY tablosu sadece tarif ve rapor içindir.
-- **Kriz tarihleri** (2008, 2020 vb.) bu dosyalarda yok. Sadece değerlendirmede (sakin/kriz ayrımı) kullanılır, model girdisi yapılmaz.
-- Graf kuralı (projenin geri kalanı): `W[i, j]` = j sektörünün i'ye etkisi (j → i).
+- `beta[t]`: Sadece t'den **önceki** dönemlerden tahmin edilir (pencere [t − pencere, t − 1]).
+- `artik[t]`: t döneminin kendi getirisi ve faktörleriyle hesaplanır, yani **t'nin sonunda bilinir.** Bu veriyle geleceğe dönük bir şey yapılacaksa, t+1 için sadece `≤ t` satırları kullanılmalıdır.
+- Kriz tarihleri (2008, 2020 vb.) bu dosyalarda yok.
 
 ## 7. Kullanım tarifleri
 
@@ -201,15 +196,14 @@ log_rv = np.log(rv_olcekli.clip(lower=1e-4))
 beta = read("beta_ff3_haftalik_1985.csv")
 beta_mkt = beta.filter(like="_mkt").rename(columns=lambda c: c[:-4])     # dönem × 49
 
-train = artik.loc["1985":"2012"]; val = artik.loc["2013":"2018"]; test = artik.loc["2019":]
 ```
 
 | Görev | Dosya |
 |---|---|
-| Etki tablosu (DY), Granger, tahmin modelleri | `artik_ff3_haftalik_1985.csv` |
+| Sektörler arası etki analizi (ana girdi) | `artik_ff3_haftalik_1985.csv` |
 | Günlük sağlamlık / hızlı yayılma (1–3 gün) | `artik_ff3_gunluk_1985.csv` |
-| Frekans sağlamlığı | `artik_ff3_2haftalik_1985.csv`, `artik_ff3_aylik_1985.csv` (aylık sadece DY için; derin öğrenme için çok az gözlem) |
-| Oynaklık katmanı | `oynaklik_rv_ff3_haftalik_1985.csv` |
+| Frekans sağlamlığı | `artik_ff3_2haftalik_1985.csv`, `artik_ff3_aylik_1985.csv` (aylıkta sadece ~500 gözlem var) |
+| Sektöre özgü oynaklık | `oynaklik_rv_ff3_haftalik_1985.csv` |
 | Ham vs FF3 karşılaştırması | `49_sektor_haftalik_1983.csv` (1985+) |
 | Piyasa getirisi / RF kontrolü | `ff3_haftalik_1983.csv` |
 | Beta analizi | `beta_ff3_haftalik_1985.csv` |
@@ -219,9 +213,8 @@ train = artik.loc["1985":"2012"]; val = artik.loc["2013":"2018"]; test = artik.l
 - **Kısmi son dönem:** 2026-09-30 satırı her frekansta eksik bir dönem (haftalıkta 3 gün).
 - **Kısa haftalar (haftalık, n_gun):** 1897 hafta 5 gün, 382 hafta 4 gün; 3 günlük: 2007-01-05, 2012-11-02 (Sandy kasırgası), 2026-09-30 (kısmi); 1 günlük: 2001-09-10 (11 Eylül sonrası borsa kapanışı). Bu haftalarda RV mekanik olarak küçük, 2001-09-10'da sıfıra çok yakın.
 - **FF3 gerçek etkinin bir kısmını silebilir:** Piyasa endeksi sektörlerden oluşur. Büyük bir sektörün (ör. 2008'de bankalar) şoku piyasayı da hareket ettirir ve bir kısmı "piyasa" olarak çıkarılır. Bulunan yayılma etkileri **alt sınır** olarak yorumlanmalı.
-- **Faiz faktörü yok:** Faize duyarlı sektörler (Banks, RlEst, Util) arasında ortak faiz şokundan kalan bağlantı olabilir. Planlanan kontrol: haftalık 10 yıllık hazine faizi değişimi (FRED, henüz eklenmedi).
+- **Faiz faktörü yok:** FF3'te faiz faktörü bulunmadığı için faize duyarlı sektörler (Banks, RlEst, Util) arasında ortak faiz şokundan kalan bir birlikte hareket olabilir.
 - **CAPM dosyaları üretilmiyor.** Gerekirse `python scripts/00_build_processed_data.py --capm` → `artik_capm_*`, `beta_capm_*`.
-- **Boru hattı:** `scripts/02–04` bu klasörü `sektorgraf.data.io.load_processed(cfg, kind, frequency)` ile okur. Frekans `configs/config.yaml → data.frequency` (varsayılan `haftalik`) veya `--frequency` ile seçilir; son kısmi satırı (günlük hariç) otomatik atar. Sonuçlar `results/<frekans>/` altına yazılır.
 
 ## 9. Yeniden üretim ve doğrulama
 
