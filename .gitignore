@@ -8,24 +8,3 @@ venv/
 .DS_Store
 .vscode/
 .idea/
-
-# Üretilen dosyalar: kodla yeniden üretilebilir, repoya girmez
-!data/processed/.gitkeep
-results/predictions/*
-!results/predictions/.gitkeep
-results/tables/*
-!results/tables/.gitkeep
-results/graphs/*
-!results/graphs/.gitkeep
-results/figures/*
-!results/figures/.gitkeep
-
-# Frekansa göre sonuçlar (results/<frekans>/), kodla yeniden üretilebilir
-results/gunluk/
-results/haftalik/
-results/2haftalik/
-results/aylik/
-
-# Model ağırlıkları
-*.pt
-*.ckpt

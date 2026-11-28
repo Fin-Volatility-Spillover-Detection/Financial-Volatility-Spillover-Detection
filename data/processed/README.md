@@ -15,8 +15,8 @@ Birim her yerde **yüzde**: `0.45` = %0,45.
 
 | Amaç | Dosya |
 |---|---|
-| **Ana analiz** (Granger, DY, AR, Lasso-VAR, LSTM, Graph WaveNet) | `artik_ff3_haftalik_1985.csv` |
-| Oynaklık katmanı (HAR, Lasso-HAR, oynaklık grafı) | `oynaklik_rv_ff3_haftalik_1985.csv` |
+| **Ana analiz girdisi** (sektörler arası etki analizi) | `artik_ff3_haftalik_1985.csv` |
+| Sektöre özgü oynaklık | `oynaklik_rv_ff3_haftalik_1985.csv` |
 | Günlük sağlamlık kontrolü | `artik_ff3_gunluk_1985.csv` |
 | “FF3 olmadan ne olurdu?” karşılaştırması | `49_sektor_haftalik_1983.csv` (1985+ kısmı) |
 

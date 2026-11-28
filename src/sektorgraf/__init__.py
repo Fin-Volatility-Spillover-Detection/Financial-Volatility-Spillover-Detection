@@ -1,1 +1,1 @@
-"""Sektörler arası etki grafı: FF3 artıkları, Granger / Diebold–Yılmaz grafları ve tahmin modelleri."""
+"""Sektör getirileri için veri hazırlığı: dönemlere birleştirme ve kayan pencereli FF3 artıkları."""
