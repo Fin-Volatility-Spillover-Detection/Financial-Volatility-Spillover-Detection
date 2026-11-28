@@ -25,7 +25,7 @@ def _scores(pred, actual) -> dict:
         "mae": M.mae(pred, actual),
         "r2_oos": M.r2_oos(pred, actual),
         "yon_isabeti": M.direction_accuracy(pred, actual),
-        "n_gun": len(pred),
+        "n_donem": len(pred),
     }
 
 

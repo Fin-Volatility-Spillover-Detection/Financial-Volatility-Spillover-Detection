@@ -18,8 +18,9 @@ pytest                    # 8 test: look-ahead yok, metrikler ve graf yöntemler
 ## Çalıştırma sırası
 
 ```bash
-python scripts/01_make_residuals.py        # ham getiri → FF3 ve CAPM artıkları  (~3 sn)
-python scripts/02_build_graphs.py          # Granger + DY etki tabloları          (~2 sn)
+python scripts/00_build_processed_data.py  # 1983+ birleştirilmiş veri, FF3/CAPM artıkları, betalar, oynaklık (~15 sn)
+python scripts/02_build_graphs.py          # Granger + DY etki tabloları (haftalık, ~2 sn)
+python scripts/02_build_graphs.py --frequency gunluk   # aynısı günlük veriyle (sağlamlık)
 python scripts/02_build_graphs.py --rolling   # + kayan pencereli DY (kriz analizi, yavaş)
 python scripts/03_run_baselines.py         # Zero, AR, Lasso-VAR + değerlendirme
 python scripts/04_run_gwn.py               # Aşama 2: Graph WaveNet (henüz yok)
@@ -28,10 +29,10 @@ python scripts/04_run_gwn.py               # Aşama 2: Graph WaveNet (henüz yok
 ## Klasör yapısı
 
 ```
-configs/config.yaml        Bütün tarihler, pencereler, parametreler. Kodda sabit sayı yok.
+configs/config.yaml        Bütün tarihler, pencereler, parametreler. data.frequency: hangi frekansla çalışılacağı (varsayılan haftalık).
 data/raw/                  French verileri (sadece okunur)
 data/external/             Viyana olay verisi, ADS endeksi (planlanan)
-data/processed/            Üretilen artık tabloları (git'e girmez)
+data/processed/            İşlenmiş veri: birleştirilmiş getiriler, artıklar, betalar, oynaklık (bkz. data/processed/README.md)
 src/sektorgraf/
   data/      io.py         Veri yükleme
              residuals.py  Kayan pencereli CAPM / FF3 artıkları (look-ahead yok)
@@ -48,7 +49,7 @@ src/sektorgraf/
              periods.py    Sakin / kriz ayrımı
 scripts/                   Numaralı adımlar
 notebooks/                 Keşif ve grafikler (sonuçlar scripts/ üzerinden üretilir)
-results/                   Tablolar, graflar, tahminler, figürler (git'e girmez)
+results/<frekans>/         Tablolar, graflar, tahminler, figürler (git'e girmez)
 docs/kararlar.md           Tasarım kararları ve gerekçeleri
 tests/                     Kritik garantilerin testleri
 ```

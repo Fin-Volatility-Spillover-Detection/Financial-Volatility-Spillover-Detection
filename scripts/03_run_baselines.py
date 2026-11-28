@@ -1,6 +1,11 @@
 """Adım 3: Merdivenin ilk basamakları (Zero → AR → Lasso-VAR) ve ortak değerlendirme.
 
-Modeller eğitim döneminde eğitilir, test dönemindeki her gün için bir adım ileri tahmin yapar.
+Girdi: data/processed/artik_<model>_<frekans>_1985.csv (config: data.frequency, data.residual_model)
+Modeller eğitim döneminde eğitilir, test dönemindeki her dönem için bir adım ileri tahmin yapar.
+Sonuçlar: results/<frekans>/tables/metrics.csv, results/<frekans>/predictions/
+
+Örnek:  python scripts/03_run_baselines.py                      # haftalık (config)
+        python scripts/03_run_baselines.py --frequency gunluk   # günlük sağlamlık
 """
 
 import argparse
@@ -8,6 +13,7 @@ import argparse
 import pandas as pd
 
 from sektorgraf.config import load_config
+from sektorgraf.data.io import load_processed, results_dir
 from sektorgraf.data.splits import split
 from sektorgraf.evaluation.evaluate import compare, evaluate
 from sektorgraf.models.baselines import AR, LassoVAR, Zero
@@ -15,15 +21,19 @@ from sektorgraf.models.baselines import AR, LassoVAR, Zero
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--residuals", default="ff3")
+    ap.add_argument("--frequency", help="gunluk | haftalik | 2haftalik | aylik (varsayılan: config)")
+    ap.add_argument("--model", help="ff3 | capm (varsayılan: config)")
     args = ap.parse_args()
 
     cfg = load_config()
+    freq = args.frequency or cfg["data"]["frequency"]
+    cfg["paths"]["results"] = results_dir(cfg, freq)   # evaluate() buraya yazar
     m = cfg["models"]
-    resid = pd.read_csv(cfg["paths"]["processed"] / f"residuals_{args.residuals}.csv",
-                        index_col=0, parse_dates=True)
+    resid = load_processed(cfg, "artik", freq, args.model)
     parts = split(resid, cfg)
     train, test_dates = parts["train"], parts["test"].index
+    print(f"[{freq}] eğitim {train.index[0].date()} – {train.index[-1].date()} ({len(train)}), "
+          f"test {test_dates[0].date()} – {test_dates[-1].date()} ({len(test_dates)})\n")
 
     models = [Zero(), AR(m["ar"]["lags"]), LassoVAR(m["lasso_var"]["lags"], m["lasso_var"]["alpha"])]
     tables = []

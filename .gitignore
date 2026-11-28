@@ -20,6 +20,12 @@ results/graphs/*
 results/figures/*
 !results/figures/.gitkeep
 
+# Frekansa göre sonuçlar (results/<frekans>/), kodla yeniden üretilebilir
+results/gunluk/
+results/haftalik/
+results/2haftalik/
+results/aylik/
+
 # Model ağırlıkları
 *.pt
 *.ckpt
